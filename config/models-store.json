@@ -6,7 +6,11 @@
       "name": "Agnes 3.0 Flash",
       "context": 128000,
       "cost": 0,
-      "features": ["code", "reasoning", "tool-use"]
+      "features": [
+        "code",
+        "reasoning",
+        "tool-use"
+      ]
     },
     {
       "id": "agnes-2.5-flash",
@@ -14,7 +18,11 @@
       "name": "Agnes 2.5 Flash",
       "context": 128000,
       "cost": 0,
-      "features": ["code", "reasoning", "tool-use"],
+      "features": [
+        "code",
+        "reasoning",
+        "tool-use"
+      ],
       "default": true
     },
     {
@@ -23,16 +31,11 @@
       "name": "Agnes 2.0 Flash",
       "context": 128000,
       "cost": 0,
-      "features": ["code", "reasoning", "tool-use"]
-    },
-    {
-      "id": "glm-4.7-flash",
-      "provider": "zai",
-      "name": "GLM-4.7 Flash",
-      "context": 128000,
-      "cost": 0,
-      "features": ["reasoning", "code"],
-      "thinking": "high"
+      "features": [
+        "code",
+        "reasoning",
+        "tool-use"
+      ]
     },
     {
       "id": "agnes-image-2.5-flash",
@@ -40,7 +43,9 @@
       "name": "Agnes Image 2.5 Flash",
       "context": 128000,
       "cost": 0,
-      "features": ["image-generation"],
+      "features": [
+        "image-generation"
+      ],
       "type": "image"
     },
     {
@@ -49,24 +54,33 @@
       "name": "Agnes Video v2.0",
       "context": 128000,
       "cost": 0,
-      "features": ["video-generation"],
+      "features": [
+        "video-generation"
+      ],
       "type": "video"
     },
     {
-      "id": "claude-sonnet-4-20250514",
+      "id": "glm-4.6",
       "provider": "zai",
-      "name": "Claude Sonnet 4",
-      "context": 200000,
+      "name": "GLM-4.6",
+      "context": 204800,
       "cost": 0,
-      "features": ["code", "reasoning"]
+      "features": [
+        "code",
+        "reasoning",
+        "tool-use"
+      ]
     },
     {
-      "id": "claude-haiku-4-20250414",
+      "id": "glm-4.5-air",
       "provider": "zai",
-      "name": "Claude Haiku 4",
-      "context": 200000,
+      "name": "GLM-4.5 Air",
+      "context": 128000,
       "cost": 0,
-      "features": ["code", "fast"]
+      "features": [
+        "code",
+        "tool-use"
+      ]
     }
   ],
   "scope": {

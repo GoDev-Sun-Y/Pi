@@ -9,5 +9,6 @@
       "embeddingModel": "all-minilm:33m",
       "embeddingDim": 384
     }
-  }
+  },
+  "version": "1.2.4"
 }

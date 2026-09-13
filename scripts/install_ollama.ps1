@@ -3,6 +3,9 @@
 
 $ErrorActionPreference = "Stop"
 
+# 引入公共下载函数（带真实进度条；避免 Invoke-WebRequest 在 GB 级文件上卡收尾）
+. (Join-Path $PSScriptRoot "common.ps1")
+
 function Write-Success { param([string]$m) Write-Host "  [OK] $m" -ForegroundColor Green }
 function Write-Info    { param([string]$m) Write-Host "  [INFO] $m" -ForegroundColor Blue }
 function Write-ErrorCustom { param([string]$m) Write-Host "  [ERROR] $m" -ForegroundColor Red }
@@ -12,12 +15,27 @@ $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
 if ($ollamaCmd) {
     Write-Success "Ollama 已安装: $($ollamaCmd.Source)"
 } else {
-    Write-Info "下载 Ollama 安装包..."
+    # 安装包约 1.5GB，从国外源下载较慢，这里会显示真实进度（已下载/总量/速度/剩余时间）
+    Write-Info "下载 Ollama 安装包（约 1.5GB，国内网络可能需要十几分钟）..."
     $url = "https://ollama.com/download/OllamaSetup.exe"
     $tmp = "$env:TEMP\OllamaSetup.exe"
-    Invoke-WebRequest -Uri $url -OutFile $tmp -UseBasicParsing
+
+    if (-not (Invoke-FileDownload -Uri $url -OutFile $tmp -Description "Ollama 安装包" -TimeoutSec 3600)) {
+        Write-Info "自动下载未完成。你仍然可以手动安装："
+        Write-Host "    1) 浏览器打开 https://ollama.com/download 下载安装包双击运行" -ForegroundColor Yellow
+        Write-Host "    2) 或手动下载后放到 $tmp 再重跑本脚本" -ForegroundColor Yellow
+        Write-Host "    3) 装完记得跳过注册页（点 No thanks, I'll use Ollama locally），然后重跑本脚本" -ForegroundColor Yellow
+        exit 1
+    }
+
     Write-Info "安装 Ollama (静默)..."
-    Start-Process $tmp -ArgumentList "/quiet" -Wait
+    Write-Host "    若弹出注册/登录页，点最下方 'No thanks, I'll use Ollama locally' 即可（Ollama 本地运行，无需账号）" -ForegroundColor Yellow
+    $proc = Start-Process $tmp -ArgumentList "/quiet" -PassThru
+    if (-not $proc.WaitForExit(600000)) {
+        Write-ErrorCustom "安装器 10 分钟未结束，已放弃等待"
+        Write-Host "    可手动双击 $tmp 完成安装，再重跑本脚本" -ForegroundColor Yellow
+        exit 1
+    }
     $env:Path = [System.Environment]::GetEnvironmentVariable("Path", "Machine") + ";" + [System.Environment]::GetEnvironmentVariable("Path", "User")
     $ollamaCmd = Get-Command ollama -ErrorAction SilentlyContinue
     if ($ollamaCmd) {

@@ -29,6 +29,13 @@ param(
     [switch]$SkipExtensions,
     [switch]$SkipPythonDeps,
     [switch]$NoElevate,
+    # git 来源扩展（唯一需要直连 GitHub 的一步）在国内网络极易卡死，因此：
+    #   -SkipGitExtension        直接跳过它
+    #   -GitExtensionTimeoutSec  超时秒数，超时自动放弃并继续（默认 180）
+    #   -GitMirror               超时后改走的镜像前缀；传空字符串表示不试镜像
+    [switch]$SkipGitExtension,
+    [int]$GitExtensionTimeoutSec = 180,
+    [string]$GitMirror = "https://ghfast.top/",
     [Alias("WhatIf")]
     [switch]$DryRun
 )
@@ -38,6 +45,13 @@ $ErrorActionPreference = "Continue"
 $ScriptPath = $MyInvocation.MyCommand.Path
 $ScriptDir  = Split-Path $ScriptPath -Parent      # ...\Pi-Work-Mode\scripts
 $RepoRoot   = Split-Path $ScriptDir -Parent       # ...\Pi-Work-Mode
+
+# 公共函数：带真实进度条的文件下载（替代会卡收尾的 Invoke-WebRequest）
+$commonPs1 = Join-Path $ScriptDir "common.ps1"
+if (Test-Path $commonPs1) { . $commonPs1 }
+
+# 安装过程中失败但被跳过的组件，结尾汇总时如实列出
+$script:SkippedComponents = @()
 
 # ============================================================
 # 输出辅助
@@ -123,9 +137,7 @@ function Install-Docker {
     $dockerUrl = "https://desktop.docker.com/win/main/amd64/Docker%20Desktop%20Installer.exe"
     $dockerInstaller = "$env:TEMP\Docker-Desktop-Installer.exe"
 
-    if (Invoke-WithRetry -ScriptBlock {
-        Invoke-WebRequest -Uri $dockerUrl -OutFile $dockerInstaller -UseBasicParsing
-    } -Description "Docker 下载") {
+    if (Invoke-FileDownload -Uri $dockerUrl -OutFile $dockerInstaller -Description "Docker Desktop") {
         Write-Host "  正在静默安装 Docker Desktop..."
         Start-Process $dockerInstaller -ArgumentList "/quiet", "noreboot" -Wait
         Write-Success "Docker Desktop 安装完成"
@@ -159,6 +171,8 @@ if (-not (Test-Admin) -and -not $DryRun -and -not $NoElevate) {
     if ($SkipPi)     { $elevateArgs += "-SkipPi" }
     if ($SkipExtensions)  { $elevateArgs += "-SkipExtensions" }
     if ($SkipPythonDeps)  { $elevateArgs += "-SkipPythonDeps" }
+    if ($SkipGitExtension) { $elevateArgs += "-SkipGitExtension" }
+    if ($GitExtensionTimeoutSec -ne 180) { $elevateArgs += @("-GitExtensionTimeoutSec", $GitExtensionTimeoutSec) }
     if ($DryRun)     { $elevateArgs += "-DryRun" }
 
     Start-Process powershell -Verb RunAs -ArgumentList $elevateArgs -Wait
@@ -262,9 +276,7 @@ if (-not $Prerequisites.Node) {
     $nodeInstaller = "$env:TEMP\node-installer.msi"
 
     if (Should-Process "下载并安装 Node.js $nodeVersion") {
-        if (Invoke-WithRetry -ScriptBlock {
-            Invoke-WebRequest -Uri $nodeUrl -OutFile $nodeInstaller -UseBasicParsing
-        } -Description "Node.js 下载") {
+        if (Invoke-FileDownload -Uri $nodeUrl -OutFile $nodeInstaller -Description "Node.js $nodeVersion") {
             Write-Host "  正在静默安装 Node.js..."
             Start-Process msiexec.exe -ArgumentList "/i `"$nodeInstaller`" /quiet /norestart" -Wait
             Refresh-Environment
@@ -285,9 +297,7 @@ if (-not $Prerequisites.Python) {
     $pythonInstaller = "$env:TEMP\python-installer.exe"
 
     if (Should-Process "下载并安装 Python 3.12.7") {
-        if (Invoke-WithRetry -ScriptBlock {
-            Invoke-WebRequest -Uri $pythonUrl -OutFile $pythonInstaller -UseBasicParsing
-        } -Description "Python 下载") {
+        if (Invoke-FileDownload -Uri $pythonUrl -OutFile $pythonInstaller -Description "Python 3.12.7") {
             Write-Host "  正在静默安装 Python..."
             Start-Process $pythonInstaller -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 Include_test=0 Include_pip=1" -Wait
             Refresh-Environment
@@ -610,18 +620,70 @@ if ($SkipExtensions) {
         }
     }
 
-    # git 来源扩展（可选）：失败只警告，不阻塞
+    # git 来源扩展（可选，也是唯一需要直连 GitHub 的一步）
+    # 三重保险：① 硬超时，绝不让整条流程干等；② 超时后自动换镜像重试一次；
+    #          ③ 仍失败就跳过，只记录，结尾如实汇总。
     $GitExtensionSources = @(
         "git:github.com/Blue-B/pi-custom-packages"
     )
-    foreach ($src in $GitExtensionSources) {
-        if (Should-Process "pi install $src") {
-            Write-Host "  正在安装扩展: $src"
-            & $piExe install $src 2>&1 | Out-Null
-            if ($LASTEXITCODE -eq 0) {
-                Write-Success "已安装: $src"
-            } else {
-                Write-Warn "安装失败（可忽略，属可选扩展）: $src"
+
+    if ($SkipGitExtension) {
+        Write-Info "已指定 -SkipGitExtension，跳过 git 来源扩展"
+    } else {
+        foreach ($src in $GitExtensionSources) {
+            if (Should-Process "pi install $src") {
+                Write-Host "  正在安装扩展: $src（最多等 $GitExtensionTimeoutSec 秒，超时自动跳过）"
+
+                $job = Start-Job -ScriptBlock {
+                    param($exe, $source, $agentDir)
+                    $env:PI_CODING_AGENT_DIR = $agentDir
+                    & $exe install $source 2>&1
+                } -ArgumentList @($piExe, $src, $PiHome)
+
+                $finished = Wait-Job $job -Timeout $GitExtensionTimeoutSec
+
+                if (-not $finished) {
+                    Stop-Job $job -ErrorAction SilentlyContinue
+                    Remove-Job $job -Force -ErrorAction SilentlyContinue
+                    Write-Warn "超时 ${GitExtensionTimeoutSec} 秒未装完（国内直连 GitHub 常见），先跳过"
+
+                    if ($GitMirror) {
+                        $mirrored = $src -replace "git:github\.com/", "git:$GitMirror/github.com/"
+                        Write-Host "  改用镜像重试一次: $mirrored" -ForegroundColor Yellow
+                        $job2 = Start-Job -ScriptBlock {
+                            param($exe, $source, $agentDir)
+                            $env:PI_CODING_AGENT_DIR = $agentDir
+                            & $exe install $source 2>&1
+                        } -ArgumentList @($piExe, $mirrored, $PiHome)
+
+                        if (Wait-Job $job2 -Timeout $GitExtensionTimeoutSec) {
+                            $out2 = Receive-Job $job2 2>&1
+                            if ($LASTEXITCODE -eq 0) {
+                                Write-Success "已安装（镜像）: $src"
+                            } else {
+                                Write-Warn "镜像安装也失败，跳过（可稍后手动执行 pi install $src）"
+                                $script:SkippedComponents += "扩展 $src"
+                            }
+                        } else {
+                            Stop-Job $job2 -ErrorAction SilentlyContinue
+                            Remove-Job $job2 -Force -ErrorAction SilentlyContinue
+                            Write-Warn "镜像同样超时，跳过（可稍后手动执行 pi install $src）"
+                            $script:SkippedComponents += "扩展 $src"
+                        }
+                        Remove-Job $job2 -Force -ErrorAction SilentlyContinue
+                    } else {
+                        $script:SkippedComponents += "扩展 $src"
+                    }
+                } else {
+                    $out = Receive-Job $job 2>&1
+                    if ($LASTEXITCODE -eq 0) {
+                        Write-Success "已安装: $src"
+                    } else {
+                        Write-Warn "安装失败（可忽略，属可选扩展）: $src"
+                        $script:SkippedComponents += "扩展 $src"
+                    }
+                    Remove-Job $job -Force -ErrorAction SilentlyContinue
+                }
             }
         }
     }
@@ -640,13 +702,24 @@ if (Should-Process "创建扩展目录: $ExtensionsDir") {
 if (Test-Command "pip") {
     if ($SkipPythonDeps) {
         Write-Info "已指定 -SkipPythonDeps，跳过 Python 依赖安装"
-    } elseif (Should-Process "pip install qdrant-client") {
-        Write-Host "  正在安装 Python 依赖..."
-        pip install qdrant-client 2>&1 | Out-Null
+    } elseif (Should-Process "pip install qdrant-client（走清华镜像）") {
+        Write-Host "  正在安装 Python 依赖（qdrant-client）..."
+        # 三条改进：走国内镜像、限制超时、把 pip 的输出原样打出来（不再 Out-Null）
+        $pipArgs = @("install", "-i", "https://pypi.tuna.tsinghua.edu.cn/simple",
+                     "--timeout", "60", "--retries", "2", "qdrant-client")
+        & pip @pipArgs
         if ($LASTEXITCODE -eq 0) {
             Write-Success "Python 依赖安装完成"
         } else {
-            Write-Warn "qdrant-client 安装失败，记忆管理功能将不可用"
+            Write-Warn "镜像安装失败，回退官方源再试一次..."
+            & pip install --timeout 60 --retries 2 qdrant-client
+            if ($LASTEXITCODE -eq 0) {
+                Write-Success "Python 依赖安装完成（官方源）"
+            } else {
+                Write-Warn "qdrant-client 安装失败，记忆检索功能暂不可用"
+                Write-Host "    手动补救: pip install -i https://pypi.tuna.tsinghua.edu.cn/simple qdrant-client" -ForegroundColor Gray
+                $script:SkippedComponents += "Python 依赖 qdrant-client"
+            }
         }
     }
 } else {
@@ -829,6 +902,15 @@ Write-Host "    文档:    $DocsDir"
 Write-Host "    脚本:    $ScriptsDir"
 Write-Host "    日志:    $LogsDir"
 Write-Host ""
+
+# 如实列出被跳过的组件，不让任何一步"静默失败"
+if ($script:SkippedComponents.Count -gt 0) {
+    Write-Host "  以下组件未装上（主功能不受影响，可稍后补装）:" -ForegroundColor Yellow
+    foreach ($c in $script:SkippedComponents) {
+        Write-Host "    - $c" -ForegroundColor Yellow
+    }
+    Write-Host ""
+}
 Write-Host "  下一步:" -ForegroundColor Gray
 Write-Host "    1. 运行 pi 启动会话"
 Write-Host "    2. 阅读 $DocsDir\AGENTS.md"

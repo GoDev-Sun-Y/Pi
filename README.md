@@ -299,8 +299,16 @@ Pi 主配置文件，包含：
    `npm config set registry https://registry.npmmirror.com`；Pi 本体下载同理。
    GitHub 那个失败只会打印警告，**不影响其余扩展，也不影响 Pi 本体运行**
 4. **数据备份**：安装前建议备份现有 `~/.pi` 目录
-5. **API 密钥**：`setup.ps1` 完成后会提示配置 `AGNES_API_KEY`（复制 `config\settings.env.example` 为 `settings.env` 并填入），Agnes 免费渠道见 https://api.sapiens.ai；本地 Ollama 部分（embedding/向量搜索）完全免费无需密钥
-6. **Ollama 自动安装**：`setup.ps1` 第 7b 步自动运行 `scripts\install_ollama.ps1`，首次运行会拉取 `all-minilm:33m`（384 维）；如需更高精度可手动 `ollama pull bge-m3`（1024 维）并更新 `config\settings.json` 的 `embeddingModel`/`embeddingDim`
+5. **API 密钥（必做，否则 Pi 提示 No models available）**：三选一
+   - **Agnes 国际站**（默认）：`AGNES_API_KEY`，申请 https://agnes-ai.com
+   - **Agnes 国内站**：`AGNES_CN_API_KEY`，申请 https://agnes-ai.cn
+     —— 钥匙必须与注册站点对齐，在国际站注册却存进 `AGNES_CN_API_KEY` 会报 401
+   - **智谱 GLM**（国内推荐）：`ZAI_API_KEY`，申请 https://open.bigmodel.cn，
+     设好后 Pi 会联网刷出真实模型，推荐选 `glm-4.7`
+   设置方式：`[System.Environment]::SetEnvironmentVariable("ZAI_API_KEY", "你的key", "User")`
+   **改完必须新开终端窗口**。模板见 `config\settings.env.example`
+6. **Ollama 自动安装**：`setup.ps1` 第 7b 步自动运行 `scripts\install_ollama.ps1`，首次运行会拉取 `all-minilm:33m`（384 维）；如需更高精度可手动 `ollama pull bge-m3`（1024 维）并更新 `config\settings.json` 的 `embeddingModel`/`embeddingDim`。安装包约 **1.5GB**，脚本会显示带进度条的下载；装完弹注册页时点 "No thanks, I'll use Ollama locally"
+7. **卡住可随时 Ctrl+C**：历史高发点是 git 扩展、`pip install`、Ollama 下载三处，脚本已分别加了超时/镜像/进度条；中断不丢已完成的部分，对策见 `docs\部署指南.md` 的「卡住不动怎么办」
 
 ## 许可证
 
