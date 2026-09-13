@@ -40,7 +40,7 @@
 
 ACP guardrail 强制阻止时：
 
-1. 用 glm-4.7-flash 分析上下文
+1. 用 glm-4.7 分析上下文
 2. 确认安全后切回 agnes-2.5-flash 执行下一步
 
 ## 记忆保存位置

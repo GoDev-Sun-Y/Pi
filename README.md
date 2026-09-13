@@ -283,7 +283,7 @@ Pi 主配置文件，包含：
 
 - `simple` → agnes-2.5-flash（默认）
 - `complex` → agnes-3.0-flash（复杂任务）
-- `reasoning` → glm-4.7-flash（深度推理）
+- `reasoning` → glm-4.7（深度推理）
 - 等等...
 
 ## 版本历史

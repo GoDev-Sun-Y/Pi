@@ -127,7 +127,7 @@ pi install npm:<包名>
 
 - **循环熔断**: 同一操作连续失败≥3次 → 立即停，换策略
 - **think 调用**: 简单任务0-1次 / 复杂任务2-3次 / 超3次必须说明理由
-- **guardrail 处理**: ACP guardrail 强制阻止时 → 用 glm-4.7-flash 分析上下文 → 确认安全后切回 agnes-2.5-flash 执行
+- **guardrail 处理**: ACP guardrail 强制阻止时 → 用 glm-4.7 分析上下文 → 确认安全后切回 agnes-2.5-flash 执行
 - **模型派发策略**: 无条件 3.0 → 泽判断 → 默认 2.5
 - **压缩前保存记忆**: compress 前先 memory_write
 - **60K自动压缩**: 上下文>60K 主动触发
