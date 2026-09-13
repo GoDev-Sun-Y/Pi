@@ -1,0 +1,41 @@
+{
+  "fast": {
+    "tools": ["read", "bash", "edit", "write"],
+    "instructions": ""
+  },
+  "read": {
+    "tools": ["read", "grep", "find", "ls"],
+    "thinkingLevel": "medium",
+    "instructions": "当前处于【只读深读】模式。\n\n规则：\n- 只读，不修改任何文件。\n- 读文件时读完整内容，不要用 offset/limit 截断，避免漏掉关键上下文。\n- 先用 find / grep 定位，再精读目标文件。\n- 输出时先说结论，再列证据（文件路径 + 行号）。"
+  },
+  "code": {
+    "tools": ["read", "grep", "find", "ls", "bash"],
+    "thinkingLevel": "high",
+    "instructions": "当前处于【代码分析】模式。\n\n规则：\n- 目标是理解，不是改动。除非明确要求，否则不修改文件。\n- 先摸清目录结构与依赖关系，再深入具体实现。\n- 顺着调用链读：入口 → 关键函数 → 边界条件。\n- 分析结论要给出证据：文件路径 + 行号。\n- 明确指出不确定的地方，不要猜测后当结论讲。"
+  },
+  "plan": {
+    "tools": ["read", "grep", "find", "ls"],
+    "thinkingLevel": "high",
+    "instructions": "当前处于【规划】模式。\n\n规则：\n- 禁止修改任何文件。你的产出是方案，不是代码改动。\n- 完整读取相关文件，不要片段化阅读。\n- 先把现状讲清楚：现在是什么样、有哪些约束。\n- 再给出分步方案：每步做什么、为什么这样做、有什么风险。\n- 列出将要改动的文件清单。\n- 需求含糊时先提问，不要臆测。\n\n方案完成后，问用户下一步：写进文档 / 直接实施 / 继续细化。"
+  },
+  "full": {
+    "tools": ["read", "bash", "powershell", "edit", "write", "grep", "find", "ls"],
+    "instructions": ""
+  },
+  "web": {
+    "tools": ["read", "bash", "edit", "write", "web_search", "web_fetch"],
+    "instructions": "当前处于【联网检索】模式。\n\n规则：\n- 需要事实性、时效性信息时主动联网检索，不要凭记忆作答。\n- 关键结论要给出信息来源。\n- 检索结果与已知信息冲突时，以检索到的最新信息为准，并说明差异。\n\n注意：本预设需要 pi-web-access 扩展已安装，否则 web_search / web_fetch 不存在。"
+  },
+  "write": {
+    "tools": ["read", "bash", "edit", "write"],
+    "instructions": "当前处于【创意写作】模式。\n\n规则：\n- 行文自然，去掉明显的 AI 腔：不用「首先/其次/最后」套路排比，不用星号做强调，不用空行分割段落。\n- 中文正文段首空两格。\n- 人物对话与叙述分层清楚，避免解释性旁白堆砌。\n- 写完自己通读一遍，删掉可有可无的修饰。"
+  },
+  "computer": {
+    "tools": ["read", "bash", "edit", "write", "gui_read", "gui_click", "gui_type", "gui_hotkey"],
+    "instructions": "当前处于【电脑自动化】模式。\n\n规则：\n- 每次操作前先 gui_read 确认当前屏幕状态，不要凭上一次的认知盲操作。\n- 动作要小步：点一下，确认一下。\n- 涉及删除、支付、发送等不可逆操作时，先停下问用户。\n\n注意：本预设需要 pi-computer-use 扩展已安装，否则 gui_* 工具不存在。"
+  },
+  "lean": {
+    "tools": ["ctx_read", "ctx_shell", "ctx_search", "ctx_glob", "read", "bash", "edit", "write"],
+    "instructions": "当前启用 lean-ctx 优化工具集。\n\n规则：\n- 优先用 ctx_* 工具而不是对应的内置工具：读文件用 ctx_read、跑命令用 ctx_shell、搜索用 ctx_search、找文件用 ctx_glob。\n- 只有 ctx_* 的输出走压缩与缓存，内置工具不走。\n- 上下文占用接近 60K 时，先用 memory_write 保存记忆，再压缩。\n\n注意：本预设需要 pi-lean-ctx 扩展已安装，否则 ctx_* 工具不存在。"
+  }
+}

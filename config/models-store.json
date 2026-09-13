@@ -1,0 +1,76 @@
+{
+  "models": [
+    {
+      "id": "agnes-3.0-flash",
+      "provider": "agnes",
+      "name": "Agnes 3.0 Flash",
+      "context": 128000,
+      "cost": 0,
+      "features": ["code", "reasoning", "tool-use"]
+    },
+    {
+      "id": "agnes-2.5-flash",
+      "provider": "agnes",
+      "name": "Agnes 2.5 Flash",
+      "context": 128000,
+      "cost": 0,
+      "features": ["code", "reasoning", "tool-use"],
+      "default": true
+    },
+    {
+      "id": "agnes-2.0-flash",
+      "provider": "agnes",
+      "name": "Agnes 2.0 Flash",
+      "context": 128000,
+      "cost": 0,
+      "features": ["code", "reasoning", "tool-use"]
+    },
+    {
+      "id": "glm-4.7-flash",
+      "provider": "zai",
+      "name": "GLM-4.7 Flash",
+      "context": 128000,
+      "cost": 0,
+      "features": ["reasoning", "code"],
+      "thinking": "high"
+    },
+    {
+      "id": "agnes-image-2.5-flash",
+      "provider": "agnes",
+      "name": "Agnes Image 2.5 Flash",
+      "context": 128000,
+      "cost": 0,
+      "features": ["image-generation"],
+      "type": "image"
+    },
+    {
+      "id": "agnes-video-v2.0",
+      "provider": "agnes",
+      "name": "Agnes Video v2.0",
+      "context": 128000,
+      "cost": 0,
+      "features": ["video-generation"],
+      "type": "video"
+    },
+    {
+      "id": "claude-sonnet-4-20250514",
+      "provider": "zai",
+      "name": "Claude Sonnet 4",
+      "context": 200000,
+      "cost": 0,
+      "features": ["code", "reasoning"]
+    },
+    {
+      "id": "claude-haiku-4-20250414",
+      "provider": "zai",
+      "name": "Claude Haiku 4",
+      "context": 200000,
+      "cost": 0,
+      "features": ["code", "fast"]
+    }
+  ],
+  "scope": {
+    "freeOnly": true,
+    "maxCost": 0
+  }
+}

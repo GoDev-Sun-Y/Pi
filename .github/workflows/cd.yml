@@ -1,0 +1,65 @@
+name: CD - 打包 Release
+
+on:
+  release:
+    types: [published]
+
+jobs:
+  package:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 读取版本号（Trim 去换行）
+      - name: 读取版本
+        id: version
+        run: |
+          $v = (Get-Content version.txt -Raw).Trim()
+          if (-not $v) { throw "version.txt is empty" }
+          Write-Output "version=$v" >> $env:GITHUB_OUTPUT
+          Write-Host "Version: $v"
+
+      # 准备打包目录（用精确路径，不用通配符）
+      - name: 准备包内容
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          $name = "Pi-Work-Mode-$v"
+          if (Test-Path $name) { Remove-Item -Recurse -Force $name }
+          New-Item -ItemType Directory -Force -Path $name | Out-Null
+
+          # 复制核心目录
+          Copy-Item config -Destination $name -Recurse -Force
+          Copy-Item docs -Destination $name -Recurse -Force
+          Copy-Item scripts -Destination $name -Recurse -Force
+          Copy-Item templates -Destination $name -Recurse -Force
+          Copy-Item docker `
+            -Destination $name -Recurse `
+            -Force -ErrorAction SilentlyContinue
+
+          # 复制根文件
+          Copy-Item README.md -Destination $name
+          Copy-Item version.txt -Destination $name
+          if (Test-Path .gitignore) { Copy-Item .gitignore -Destination $name }
+
+          Write-Output "package=$name" >> $env:GITHUB_OUTPUT
+          Write-Host "Package directory: $name"
+          $count = (Get-ChildItem $name -Recurse | Measure-Object).Count
+          Write-Host "Total items: $count"
+
+      # 压缩为 ZIP（精确指定目录名）
+      - name: 创建 ZIP
+        run: |
+          $v = "${{ steps.version.outputs.version }}"
+          $name = "Pi-Work-Mode-$v"
+          Compress-Archive -Path $name -DestinationPath "$name.zip" -Force
+          $size = (Get-Item "$name.zip").Length / 1KB
+          Write-Host "ZIP size: $([math]::Round($size, 1)) KB"
+          Write-Output "asset_name=$name.zip" >> $env:GITHUB_OUTPUT
+
+      # 上传到 Release（使用官方推荐 action）
+      - name: 上传 Release 附件
+        uses: softprops/action-gh-release@v2
+        with:
+          files: Pi-Work-Mode-${{ steps.version.outputs.version }}.zip
+          fail_on_unmatched_files: true

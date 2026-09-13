@@ -1,0 +1,16 @@
+# Git 属性规则
+#
+# git 钩子目录 .githooks/ 由 sh 解释执行。
+# 本机 core.autocrlf=true 时，若不显式锁定行尾，这些文件在检出/切换分支的
+# 时候会被转换成 CRLF，sh 会把行尾的 \r 当成命令名的一部分，于是钩子报错
+# 并直接失效（典型症状是 "command not found" 或脚本静默不执行）。
+# 因此这里强制它们始终以 LF 存储和检出。
+.githooks/* text eol=lf
+
+# .gitattributes 自身也锁定为 LF，否则每次 git 触碰它都会打印
+# "LF will be replaced by CRLF" 警告。
+.gitattributes text eol=lf
+
+# 扩展名与 .githooks/pre-commit 相同风险的补充说明：
+# tests/verify.ps1 等 PowerShell 脚本需要 UTF-8 BOM，由 .tools/fix_bom.py
+# 维护，不在此处声明，避免 git 动到它们的行尾。

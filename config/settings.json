@@ -1,0 +1,13 @@
+{
+  "pi": {
+    "version": "1.2.3",
+    "home": "~/.pi/agent",
+    "dataDir": "{{DATA_DIR}}",
+    "config": {
+      "memoryBackend": "qdrant",
+      "qdrantUrl": "http://localhost:6333",
+      "embeddingModel": "all-minilm:33m",
+      "embeddingDim": 384
+    }
+  }
+}

@@ -1,0 +1,27 @@
+# Qdrant 容器编排（手工/参考用）
+#
+# ⚠️ 正式安装不需要这个文件。
+#    setup.ps1 会在你的**数据目录**下自动生成一份 docker-compose.yml 并尝试启动，
+#    挂载 <数据目录>\qdrant_storage —— 那才是推荐路径。
+#
+# 如果你要手工用这一份，先设置 QDRANT_DATA 指向数据目录，例如：
+#     $env:QDRANT_DATA = "C:\PiData\qdrant_storage"
+#     docker compose up -d
+# 不设置的话，向量数据会落在本文件旁边的 qdrant_storage/（在仓库内，
+# 容易随仓库一起被误删或清理）。
+
+services:
+  qdrant:
+    image: qdrant/qdrant:latest
+    container_name: qdrant
+    ports:
+      - "6333:6333"
+      - "6334:6334"
+    volumes:
+      - ${QDRANT_DATA:-./qdrant_storage}:/qdrant/storage
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:6333/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

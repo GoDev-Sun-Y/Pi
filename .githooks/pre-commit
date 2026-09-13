@@ -1,0 +1,50 @@
+#!/bin/sh
+# Pi-Work-Mode pre-commit hook
+#
+# Runs the project's own static checks before a commit is created, so problems
+# surface locally instead of later. A non-zero exit code aborts the commit.
+#
+# Bypass once:  git commit --no-verify
+# Uninstall:    git config --unset core.hooksPath   (or run scripts/install-hooks.ps1 -Uninstall)
+#
+# IMPORTANT: this file must keep LF line endings and must NOT have a BOM.
+# It is interpreted by sh, which treats a stray \r or BOM as part of the
+# command name. See .gitattributes where the LF requirement is pinned.
+
+repo_root=$(git rev-parse --show-toplevel 2>/dev/null)
+if [ -z "$repo_root" ]; then
+    echo "pre-commit: not inside a git repository, skipping checks." >&2
+    exit 0
+fi
+
+cd "$repo_root" || exit 0
+
+if [ ! -f "tests/verify.ps1" ]; then
+    echo "pre-commit: tests/verify.ps1 not found, skipping checks." >&2
+    exit 0
+fi
+
+if command -v pwsh >/dev/null 2>&1; then
+    ps_exe=pwsh
+elif command -v powershell >/dev/null 2>&1; then
+    ps_exe=powershell
+else
+    echo "pre-commit: PowerShell not found, skipping checks." >&2
+    exit 0
+fi
+
+echo "pre-commit: running Pi-Work-Mode checks (tests/verify.ps1 -SkipServices) ..."
+
+"$ps_exe" -NoProfile -ExecutionPolicy Bypass -File "tests/verify.ps1" -SkipServices
+status=$?
+
+if [ "$status" -ne 0 ]; then
+    echo ""
+    echo "pre-commit: checks FAILED (exit $status). Commit aborted."
+    echo "pre-commit: fix the problems listed above, or bypass once with:"
+    echo "            git commit --no-verify"
+    exit "$status"
+fi
+
+echo "pre-commit: all checks passed."
+exit 0

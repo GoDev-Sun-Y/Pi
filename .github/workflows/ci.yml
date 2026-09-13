@@ -1,0 +1,89 @@
+name: CI - 验证 Pi-Work-Mode
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  validate:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      # 验证 JSON 格式（使用 PowerShell 原生解析）
+      - name: 验证 settings.json
+        shell: pwsh
+        run: |
+          $json = Get-Content 'config/settings.json' -Raw | ConvertFrom-Json
+          Write-Host 'OK'
+
+      - name: 验证 models-store.json
+        shell: pwsh
+        run: |
+          $json = Get-Content 'config/models-store.json' -Raw | ConvertFrom-Json
+          Write-Host 'OK'
+
+      # 验证 PowerShell 脚本语法
+      - name: 验证 PowerShell 脚本语法
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          foreach ($f in @('scripts\setup.ps1', 'scripts\install_ollama.ps1', 'tests\verify.ps1', 'tests\test_install.ps1')) {
+            $sb = Get-Content $f -Raw
+            [scriptblock]::Create($sb) | Out-Null
+            Write-Host "Syntax OK: $f"
+          }
+
+      # 验证 Python 脚本语法
+      - name: 验证 Python 脚本语法
+        run: |
+          python -m py_compile scripts/memory_manager.py
+          python -m py_compile tests/test_memory_search.py
+          echo "Syntax OK"
+
+      # 检查硬编码个人路径（用通用正则，避免像旧版那样只匹配两个写死的字符串而漏检）
+      - name: 检查个人路径残留
+        shell: pwsh
+        run: |
+          $pattern = '[A-Za-z]:[\\/]Users[\\/][A-Za-z0-9_.\u4e00-\u9fff-]+'
+          $found = $false
+          $files = Get-ChildItem -Recurse -Include *.md,*.json,*.ps1,*.py,*.yml -File -ErrorAction SilentlyContinue |
+            Where-Object { $_.FullName -notmatch '\\tests\\' -and $_.FullName -notmatch '\\\.git\\' }
+          foreach ($f in $files) {
+            $content = Get-Content $f.FullName -Raw -ErrorAction SilentlyContinue
+            if (-not $content) { continue }
+            foreach ($m in [regex]::Matches($content, $pattern)) {
+              Write-Host "Found personal path in $($f.Name): $($m.Value)"
+              $found = $true
+            }
+          }
+          if ($found) { throw "检测到硬编码个人路径，请先脱敏再提交" }
+          Write-Host "No personal paths found - OK"
+
+      # 验证版本文件
+      - name: 验证 version.txt
+        shell: pwsh
+        run: |
+          $v = (Get-Content version.txt -Raw).Trim()
+          if ($v -match '^\d+\.\d+\.\d+$') {
+            Write-Host "Version OK: $v"
+          } else {
+            throw "Invalid version: '$v'"
+          }
+
+      # 验证目录结构
+      - name: 验证包内容完整性
+        shell: pwsh
+        run: |
+          $required = @('config', 'docs', 'scripts', 'templates', 'README.md', 'version.txt')
+          foreach ($item in $required) {
+            if (Test-Path $item) {
+              Write-Host "OK: $item exists"
+            } else {
+              throw "Missing: $item"
+            }
+          }
+          Write-Host "Package structure OK"

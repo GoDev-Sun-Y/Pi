@@ -1,0 +1,75 @@
+# Git 忽略规则
+
+# 节点模块
+node_modules/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+pip-log.txt
+pip-delete-this-directory.txt
+
+# 虚拟环境
+.venv/
+venv/
+env/
+
+# 操作系统
+.DS_Store
+Thumbs.db
+
+# 临时文件
+*.tmp
+*.temp
+~*
+.*.swp
+
+# 日志文件
+*.log
+logs/
+
+# 敏感数据（不要提交！）
+.env
+.env.local
+.env.production
+secrets/
+
+# IDE
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Docker
+docker-compose.override.yml
+data/
+
+# 备份文件
+*.bak
+*.backup
+
+# Windows 缩略图缓存
+Thumbs.db
+
+# Pi 本地工作数据（不提交）
+data/
+storage/
+*.local.json
+
+# 个人配置（可能包含敏感信息）
+config/settings.local.json
+
+# Pi 本体本地安装目录（由 scripts/install-pi.ps1 生成）
+# 体积大、可随时重装，绝不提交
+.pi-runtime/
+
+# 隔离测试沙箱（由测试流程创建）
+.pi-sandbox/
+.doc-audit/

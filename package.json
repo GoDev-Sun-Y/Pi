@@ -1,0 +1,16 @@
+{
+  "name": "pi-work-mode",
+  "version": "1.0.0",
+  "description": "Pi AI Agent 工作模式配置包 - 完整迁移方案",
+  "main": "scripts/setup.ps1",
+  "scripts": {
+    "verify": "powershell -ExecutionPolicy Bypass -File tests/verify.ps1",
+    "test:install": "powershell -ExecutionPolicy Bypass -File tests/test_install.ps1",
+    "test:memory": "python tests/test_memory_search.py",
+    "hooks:install": "powershell -ExecutionPolicy Bypass -File scripts/install-hooks.ps1",
+    "hooks:uninstall": "powershell -ExecutionPolicy Bypass -File scripts/install-hooks.ps1 -Uninstall"
+  },
+  "keywords": ["pi", "agent", "config"],
+  "author": "",
+  "license": "MIT"
+}

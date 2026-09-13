@@ -1,0 +1,14 @@
+{
+  "qdrant": {
+    "url": "http://localhost:6333",
+    "embedding_model": "all-minilm:33m",
+    "embedding_dim": 384,
+    "distance": "COSINE"
+  },
+  "collections": {
+    "memory_rules": {"description": "规则与偏好记忆", "priority": "high"},
+    "daily_logs": {"description": "每日日志", "priority": "medium"},
+    "session_log": {"description": "会话记录", "priority": "medium"},
+    "novel_chapters": {"description": "小说章节", "priority": "low"}
+  }
+}
