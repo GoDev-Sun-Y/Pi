@@ -30,10 +30,15 @@ param(
     [switch]$Global,
     [switch]$Force,
     [switch]$DryRun,
-    [switch]$Uninstall
+    [switch]$Uninstall,
+    # 默认跑完停在最后等用户看完；被 setup.ps1 调用时会传 -NoPause
+    [switch]$NoPause
 )
 
 $ErrorActionPreference = "Continue"
+
+# 引入公共函数（暂停/下载）
+. (Join-Path $PSScriptRoot "common.ps1")
 
 $PackageName   = "@earendil-works/pi-coding-agent"
 $PackageDirRel = "node_modules\@earendil-works\pi-coding-agent"
@@ -342,3 +347,6 @@ Write-Host "  下一步:" -ForegroundColor Gray
 Write-Host "    1. 运行 scripts\setup.ps1 部署工作模式配置与规则" -ForegroundColor Gray
 Write-Host "    2. 配置模型 API Key（见 config\settings.env.example）" -ForegroundColor Gray
 Write-Host ""
+
+# 停在这里，让你看清安装结果与下一步指引（被 setup.ps1 调用时不暂停）
+if (-not $NoPause) { Stop-ForReview }

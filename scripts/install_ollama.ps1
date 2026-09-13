@@ -1,6 +1,11 @@
 ﻿# install_ollama.ps1 - Ollama 一键安装 + 默认 embedding 模型
 # 用法: 在 Windows 上以管理员身份运行  powershell -ExecutionPolicy Bypass -File scripts\install_ollama.ps1
 
+param(
+    # 被 setup.ps1 调用时会传 -NoPause，避免中途停住
+    [switch]$NoPause
+)
+
 $ErrorActionPreference = "Stop"
 
 # 引入公共下载函数（带真实进度条；避免 Invoke-WebRequest 在 GB 级文件上卡收尾）
@@ -100,3 +105,6 @@ Write-Host "  可选: 拉取更精确的双语模型 (bge-m3, 1.2GB):" -Foregrou
 Write-Host "    ollama pull bge-m3" -ForegroundColor Yellow
 Write-Host "  拉取后修改 config/settings.json 的 embeddingModel 为 bge-m3, embeddingDim 改为 1024" -ForegroundColor Yellow
 Write-Host "============================================" -ForegroundColor Cyan
+
+# 停在这里，让你看清安装结果与模型拉取情况（被 setup.ps1 调用时不暂停）
+if (-not $NoPause) { Stop-ForReview }

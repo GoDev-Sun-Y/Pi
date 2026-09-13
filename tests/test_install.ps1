@@ -59,7 +59,9 @@ function Invoke-SetupDryRun {
         "-NoProfile", "-ExecutionPolicy", "Bypass",
         "-File", $SetupPath,
         "-DataDir", $tmpDir,
-        "-DryRun"
+        "-DryRun",
+        # 干跑是自动化场景，必须跳过结尾暂停，否则会挂住等待按键
+        "-NoPause"
     ) + $ExtraArgs
 
     $text = (& powershell @callArgs 2>&1 | Out-String)

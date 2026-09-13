@@ -112,6 +112,30 @@ function Invoke-FileDownloadOnce {
     }
 }
 
+# 让窗口停在最后，用户看完结果再手动关。
+# 场景：脚本常被"右键 -> 用 PS 运行"或直接双击启动，跑完就自动关窗，
+#       下载进度和成功/失败反馈根本来不及看。
+# 只在交互式控制台里暂停；CI / 自动化场景传 -NoPause 跳过。
+function Stop-ForReview {
+    param([string]$Message = "按任意键关闭本窗口...")
+
+    if ($Host.Name -ne "ConsoleHost") { return }
+
+    # 自动化场景（CI、管道调用、被别的脚本 & 起来）输入是重定向的，此时绝不能停，
+    # 否则会把调用方挂死——test_install.ps1 的干跑就曾因此卡住。
+    try { if ([Console]::IsInputRedirected) { return } } catch {}
+    try { if (-not [Environment]::UserInteractive) { return } } catch {}
+    if ($env:PI_WORK_MODE_NO_PAUSE -eq "1") { return }
+
+    Write-Host ""
+    Write-Host "  $Message" -ForegroundColor Gray
+    try {
+        $null = $Host.UI.RawUI.ReadKey("NoEcho,IncludeKeyDown")
+    } catch {
+        Read-Host "  按回车键关闭本窗口" | Out-Null
+    }
+}
+
 function Invoke-FileDownload {
     param(
         [Parameter(Mandatory = $true)][string]$Uri,

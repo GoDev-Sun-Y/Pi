@@ -36,6 +36,8 @@ param(
     [switch]$SkipGitExtension,
     [int]$GitExtensionTimeoutSec = 180,
     [string]$GitMirror = "https://ghfast.top/",
+    # 默认跑完停在最后，等用户看完结果再关窗；自动化场景加 -NoPause 跳过
+    [switch]$NoPause,
     [Alias("WhatIf")]
     [switch]$DryRun
 )
@@ -172,6 +174,7 @@ if (-not (Test-Admin) -and -not $DryRun -and -not $NoElevate) {
     if ($SkipExtensions)  { $elevateArgs += "-SkipExtensions" }
     if ($SkipPythonDeps)  { $elevateArgs += "-SkipPythonDeps" }
     if ($SkipGitExtension) { $elevateArgs += "-SkipGitExtension" }
+    if ($NoPause) { $elevateArgs += "-NoPause" }
     if ($GitExtensionTimeoutSec -ne 180) { $elevateArgs += @("-GitExtensionTimeoutSec", $GitExtensionTimeoutSec) }
     if ($DryRun)     { $elevateArgs += "-DryRun" }
 
@@ -330,6 +333,8 @@ if ($SkipPi) {
         if ($PiPrefix) { $piArgs += @("-InstallDir", $PiPrefix) }
         if ($AgentDir) { $piArgs += @("-AgentDir", $AgentDir) }
         if ($DryRun)   { $piArgs += "-DryRun" }
+        # 作为子脚本被调用时不暂停，由 setup.ps1 结尾统一停一次
+        $piArgs += "-NoPause"
 
         # 用子进程调用：install-pi.ps1 内部的 exit 不会带停本脚本
         if ($DryRun) {
@@ -850,7 +855,8 @@ if ($SkipOllama) {
 } elseif (Test-Path $ollamaScript) {
     if (Should-Process "运行 install_ollama.ps1") {
         # 用子进程调用：install_ollama.ps1 内部的 exit 不会带停本脚本
-        & powershell -NoProfile -ExecutionPolicy Bypass -File $ollamaScript
+        # 传 -NoPause：不在这里停，等 setup.ps1 全部跑完再统一停一次
+        & powershell -NoProfile -ExecutionPolicy Bypass -File $ollamaScript -NoPause
         if ($LASTEXITCODE -ne 0) {
             Write-Warn "Ollama 安装未成功（退出码 $LASTEXITCODE）。Ollama 属可选组件，不影响 Pi 主体功能"
             Write-Warn "可稍后手动重试: powershell -ExecutionPolicy Bypass -File scripts\install_ollama.ps1"
@@ -916,6 +922,9 @@ Write-Host "    1. 运行 pi 启动会话"
 Write-Host "    2. 阅读 $DocsDir\AGENTS.md"
 Write-Host "    3. 初始化记忆库: python $ScriptsDir\memory_manager.py init"
 Write-Host ""
+
+# 停在这里，让你看清上面的结果再关窗（自动化场景加 -NoPause 跳过）
+if (-not $NoPause) { Stop-ForReview }
 
 # Pi 本体没装上时以非零退出码结束，让自动化判装能发现失败
 if (-not $script:PiInstallOk) { exit 1 }
